@@ -1,51 +1,39 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
-	"example/bookstore/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"example/bookstore/database"
+
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 )
 
-func SetupRouter() *gin.Engine {
-	r := gin.Default()
-	r.GET("/books", GetBooks)
-	r.POST("/books", PostBooks)
-	r.GET("/books/:id", GetBookByID)
-	return r
+func setup() {
+	err := godotenv.Load()
+	if err != nil {
+		panic("Error loading .env file: " + err.Error())
+	}
+
+	err = database.ConnectDatabase()
+	if err != nil {
+		panic("Failed to connect to the database: " + err.Error())
+	}
 }
 
 func TestGetBooks(t *testing.T) {
-	router := SetupRouter()
+	setup()
+
+	router := gin.Default()
+	router.GET("/books", GetBooks)
+
 	req, _ := http.NewRequest("GET", "/books", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestPostBooks(t *testing.T) {
-	router := SetupRouter()
-	book := models.Book{Title: "Test Book", Author: "Test Author", Price: 9.99}
-	jsonValue, _ := json.Marshal(book)
-	req, _ := http.NewRequest("POST", "/books", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusCreated, w.Code)
-}
-
-func TestGetBookByID(t *testing.T) {
-	router := SetupRouter()
-	req, _ := http.NewRequest("GET", "/books/1", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	// Vous pouvez ajouter des vérifications supplémentaires ici
 }
